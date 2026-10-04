@@ -121,7 +121,9 @@ async function mockApi(
   return {
     counts: () => ({ sendCount, checkCount, authCount }),
     enqueue: (event: ReturnType<typeof note>) => queue.push(event),
-    resumePolling: () => { options.failPolling = false; },
+    resumePolling: () => {
+      options.failPolling = false;
+    },
   };
 }
 async function connect(page: Page) {
@@ -226,16 +228,29 @@ test("mobile invalid phone/account errors stay visible before first chat", async
   await page.getByRole("button", { name: "Создать чат" }).click();
   await expect(page.getByText(/Аккаунт MAX не найден/).first()).toBeVisible();
 });
-test("demo keeps phones with identical last eight digits in separate chats", async ({ page }) => {
+test("demo keeps phones with identical last eight digits in separate chats", async ({
+  page,
+}) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Посмотреть демо без ключей" }).click();
+  await page
+    .getByRole("button", { name: "Посмотреть демо без ключей" })
+    .click();
   await createChat(page, "+79991234567");
-  await page.getByLabel("Сообщение", { exact: true }).fill("Черновик первого чата");
+  await page
+    .getByLabel("Сообщение", { exact: true })
+    .fill("Черновик первого чата");
   await createChat(page, "+78891234567");
-  await expect(page.getByRole("navigation", { name: "Список чатов" }).getByRole("button")).toHaveCount(2);
+  await expect(
+    page.getByRole("navigation", { name: "Список чатов" }).getByRole("button"),
+  ).toHaveCount(2);
   await expect(page.getByLabel("Сообщение", { exact: true })).toHaveValue("");
-  await page.getByRole("navigation", { name: "Список чатов" }).getByRole("button", { name: /79991234567/ }).click();
-  await expect(page.getByLabel("Сообщение", { exact: true })).toHaveValue("Черновик первого чата");
+  await page
+    .getByRole("navigation", { name: "Список чатов" })
+    .getByRole("button", { name: /79991234567/ })
+    .click();
+  await expect(page.getByLabel("Сообщение", { exact: true })).toHaveValue(
+    "Черновик первого чата",
+  );
 });
 
 test("untrusted apiUrl is rejected before any API call", async ({ page }) => {
@@ -249,7 +264,9 @@ test("untrusted apiUrl is rejected before any API call", async ({ page }) => {
   expect(mock.counts().authCount).toBe(0);
 });
 
-test("login rejects unauthorized state, wrong messenger and webhook delivery", async ({ page }) => {
+test("login rejects unauthorized state, wrong messenger and webhook delivery", async ({
+  page,
+}) => {
   for (const options of [
     { state: "notAuthorized" },
     { settings: { typeInstance: "whatsapp" } },
@@ -260,25 +277,85 @@ test("login rejects unauthorized state, wrong messenger and webhook delivery", a
     await page.goto("/");
     await page.getByLabel("idInstance", { exact: true }).fill(idInstance);
     await page.getByLabel("apiTokenInstance", { exact: true }).fill(key);
-    await page.getByRole("button", { name: "Подключиться", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Подключиться", exact: true })
+      .click();
     await expect(page.getByRole("alert")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Подключить инстанс" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Сообщения", exact: true })).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Подключить инстанс" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Сообщения", exact: true }),
+    ).toHaveCount(0);
   }
 });
 
-test("polling can restart after access recovery without losing the draft", async ({ page }) => {
+test("polling can restart after access recovery without losing the draft", async ({
+  page,
+}) => {
   const mock = await mockApi(page, { failPolling: true });
   await connect(page);
   await createChat(page);
-  await expect(page.getByRole("button", { name: "Повторить получение" }).last()).toBeVisible();
-  await page.getByLabel("Сообщение", { exact: true }).fill("Черновик после сбоя");
+  await expect(
+    page.getByRole("button", { name: "Повторить получение" }).last(),
+  ).toBeVisible();
+  await page
+    .getByLabel("Сообщение", { exact: true })
+    .fill("Черновик после сбоя");
   mock.resumePolling();
-  await page.getByRole("button", { name: "Повторить получение" }).last().click();
-  await expect(page.getByText("Получение включено", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Сообщение", { exact: true })).toHaveValue("Черновик после сбоя");
-  await expect(page.getByRole("button", { name: "Отправить сообщение" })).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Повторить получение" })
+    .last()
+    .click();
+  await expect(
+    page.getByText("Получение включено", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Сообщение", { exact: true })).toHaveValue(
+    "Черновик после сбоя",
+  );
+  await expect(
+    page.getByRole("button", { name: "Отправить сообщение" }),
+  ).toBeEnabled();
   expect(mock.counts().sendCount).toBe(0);
+});
+
+test("compact interface keeps one visible demo label and reflows across widths", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.locator("footer")).toHaveCount(0);
+  await expect(page.getByText("Ваш MAX.")).toHaveCount(0);
+  for (const width of [320, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 850 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBe(width);
+  }
+  await page
+    .getByRole("button", { name: "Посмотреть демо без ключей" })
+    .click();
+  await expect(page.locator(".demo-mode:visible")).toHaveCount(1);
+  const mode = page.locator(".demo-mode:visible");
+  await mode.locator("summary").click();
+  await expect(mode.locator("p")).toContainText(
+    "Сообщения не отправляются в MAX",
+  );
+  await mode.locator("summary").press("Escape");
+  await expect(mode.locator("p")).toBeHidden();
+  await expect(page.locator(".demo-banner")).toHaveCount(0);
+  await createChat(page);
+  await page
+    .getByLabel("Сообщение", { exact: true })
+    .fill("Без пробелов: " + "x".repeat(240));
+  await page.getByRole("button", { name: "Отправить сообщение" }).click();
+  for (const width of [320, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 850 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBe(width);
+    await expect(page.locator(".demo-mode:visible")).toHaveCount(1);
+    await expect(page.getByLabel("Сообщение", { exact: true })).toBeVisible();
+  }
 });
 
 test("demo, accessible controls, responsive layout and screenshots", async ({
@@ -297,7 +374,9 @@ test("demo, accessible controls, responsive layout and screenshots", async ({
     .getByLabel("Сообщение", { exact: true })
     .fill("Привет! Проверяю текстовый чат на React 👋");
   await page.getByRole("button", { name: "Отправить сообщение" }).click();
-  await expect(page.getByText(/Сообщение получено 👋/).last()).toBeVisible({
+  await expect(
+    page.getByText("Привет! Сообщение вижу.", { exact: true }).last(),
+  ).toBeVisible({
     timeout: 10000,
   });
   await expect(

@@ -43,13 +43,24 @@ const Icon = ({
 function Logo() {
   return (
     <div className="brand">
-      <span className="brand-icon">
-        <Icon name="chat" />
-      </span>
-      <span>
-        MAX <span className="brand-divider">/</span> <small>GREEN-API</small>
-      </span>
+      <strong>MAX</strong>
+      <span>GREEN-API</span>
     </div>
+  );
+}
+function DemoBadge({ className = "" }: { className?: string }) {
+  return (
+    <details
+      className={`demo-mode ${className}`}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") event.currentTarget.open = false;
+      }}
+    >
+      <summary title="Локальная имитация. Сообщения не отправляются в MAX.">
+        Демо
+      </summary>
+      <p>Локальная имитация. Сообщения не отправляются в MAX.</p>
+    </details>
   );
 }
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -129,34 +140,8 @@ function Connect({ onConnect }: { onConnect: (session: Session) => void }) {
     <main className="connect-page">
       <header className="landing-header">
         <Logo />
-        <span className="outline-chip">Текстовый чат</span>
       </header>
       <section className="connect-card">
-        <div className="connect-intro">
-          <span className="eyebrow">ПРОСТО ОСТАВАЙТЕСЬ НА СВЯЗИ</span>
-          <h1>
-            Ваш MAX.
-            <br />
-            <span>В одном окне.</span>
-          </h1>
-          <p>
-            Подключите инстанс GREEN-API,
-            <br />
-            чтобы отправлять сообщения
-            <br />и видеть ответы собеседника.
-          </p>
-          <div className="intro-chat">
-            <div className="sample-bubble">
-              Привет! Как дела? <small>12:41</small>
-            </div>
-            <div className="sample-bubble sample-answer">
-              Всё отлично, на связи 👋 <small>12:42</small>
-            </div>
-          </div>
-          <div className="intro-foot">
-            <span className="tiny-dot" /> React · HTTP API · MAX
-          </div>
-        </div>
         <form
           className="connect-form"
           onSubmit={(event) => void connect(event)}
@@ -170,7 +155,7 @@ function Connect({ onConnect }: { onConnect: (session: Session) => void }) {
                 target="_blank"
                 rel="noreferrer"
               >
-                кабинета GREEN-API ↗
+                кабинета GREEN-API
               </a>
             </p>
           </div>
@@ -219,7 +204,6 @@ function Connect({ onConnect }: { onConnect: (session: Session) => void }) {
             disabled={busy || !id.trim() || !token.trim()}
           >
             {busy ? "Проверяем подключение…" : "Подключиться"}
-            <span aria-hidden="true">→</span>
           </button>
           {busy ? (
             <button type="button" className="text-button" onClick={cancel}>
@@ -237,18 +221,10 @@ function Connect({ onConnect }: { onConnect: (session: Session) => void }) {
             </button>
           )}
           <p className="security-note">
-            <Icon name="lock" />
-            <span>
-              Ключ хранится только в памяти вкладки. HTTP API подтверждает и
-              удаляет уведомления из очереди: используйте отдельный тестовый
-              инстанс, без других потребителей.
-            </span>
+            Используйте отдельный тестовый инстанс. Ключ не сохраняется.
           </p>
         </form>
       </section>
-      <footer className="landing-footer">
-        Учебный клиент на React · Неофициальный интерфейс MAX
-      </footer>
     </main>
   );
 }
@@ -315,7 +291,8 @@ function Workspace({
     <main className={`workspace ${selected ? "chat-open" : ""}`}>
       <aside className="sidebar">
         <header className="sidebar-header">
-          <Logo />
+          <h1>Сообщения</h1>
+          {session.demo && <DemoBadge className="sidebar-demo" />}
           <button
             className="icon-button"
             onClick={onDisconnect}
@@ -325,10 +302,6 @@ function Workspace({
             <Icon name="logout" />
           </button>
         </header>
-        <div className="sidebar-heading">
-          <h1>Сообщения</h1>
-          <span>{Object.keys(chat.state.chats).length}</span>
-        </div>
         <form
           className="new-chat"
           onSubmit={(event) => {
@@ -355,7 +328,6 @@ function Workspace({
               {chat.creating ? "…" : <Icon name="plus" />}
             </button>
           </div>
-          <small>MAX · номера +7 и +375</small>
         </form>
         <div className="mobile-feedback">
           {chat.error && (
@@ -399,21 +371,13 @@ function Workspace({
           })}
           {!Object.keys(chat.state.chats).length && (
             <div className="list-empty">
-              <Icon name="chat" />
               <p>Пока нет чатов</p>
-              <small>Введите номер получателя выше</small>
             </div>
           )}
         </nav>
-        <div className="session-info">
-          <span className={`status-dot ${chat.status.state}`} />
-          <span>
-            {session.demo
-              ? "Локальный демо-режим"
-              : `Инстанс ${session.api.idInstance}`}
-            <small>История хранится до выхода</small>
-          </span>
-        </div>
+        {!session.demo && (
+          <div className="session-info">Инстанс {session.api.idInstance}</div>
+        )}
       </aside>
       <section className="conversation" aria-label="Переписка">
         <header className="conversation-header">
@@ -431,33 +395,29 @@ function Workspace({
               </span>
               <div>
                 <h2>{selected.label}</h2>
-                <p>MAX · текстовые сообщения</p>
               </div>
             </>
           ) : (
             <div>
-              <h2>Ваши сообщения</h2>
-              <p>Через GREEN-API</p>
+              <h2>Переписка</h2>
             </div>
           )}
-          <span className="header-tag">{session.demo ? "ДЕМО" : "MAX"}</span>
+          {session.demo && <DemoBadge className="conversation-demo" />}
         </header>
-        {session.demo && (
-          <div className="demo-banner">
-            Демо: сообщения и ответы имитируются локально. Ничего не
-            отправляется в MAX.
+        {session.note && <div className="notice">{session.note}</div>}
+        {(!session.demo ||
+          chat.status.state === "stopped" ||
+          chat.status.state === "retrying") && (
+          <div role="status" className={`poll-status ${chat.status.state}`}>
+            <span className={`status-dot ${chat.status.state}`} />
+            {chat.status.message}
+            {chat.status.state === "stopped" && (
+              <button className="text-button" onClick={chat.retry}>
+                Повторить получение
+              </button>
+            )}
           </div>
         )}
-        {session.note && <div className="notice">{session.note}</div>}
-        <div role="status" className={`poll-status ${chat.status.state}`}>
-          <span className={`status-dot ${chat.status.state}`} />
-          {chat.status.message}
-          {chat.status.state === "stopped" && (
-            <button className="text-button" onClick={chat.retry}>
-              Повторить получение
-            </button>
-          )}
-        </div>
         {chat.error && (
           <div className="error workspace-error" role="alert">
             {chat.error}
@@ -473,15 +433,7 @@ function Workspace({
             >
               {!messages.length && (
                 <div className="first-message">
-                  <span className="empty-icon">
-                    <Icon name="chat" />
-                  </span>
-                  <h3>Начните разговор</h3>
-                  <p>
-                    Напишите сообщение. Ответ из MAX
-                    <br />
-                    появится здесь автоматически.
-                  </p>
+                  <p>Сообщений пока нет</p>
                 </div>
               )}
               {messages.map((message, index) => (
@@ -563,15 +515,7 @@ function Workspace({
           </>
         ) : (
           <div className="empty-conversation">
-            <span className="large-mark">
-              <Icon name="chat" />
-            </span>
-            <h2>Ближе, чем кажется</h2>
-            <p>
-              Создайте чат по номеру телефона
-              <br />и начните общение в MAX.
-            </p>
-            <span className="empty-label">Только текст. Всё необходимое.</span>
+            <p>Выберите чат или создайте новый</p>
           </div>
         )}
       </section>

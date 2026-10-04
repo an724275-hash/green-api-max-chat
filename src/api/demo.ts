@@ -51,8 +51,7 @@ export function createDemoApi(): ChatApi {
         messageData: {
           typeMessage: "textMessage",
           textMessageData: {
-            textMessage:
-              "Сообщение получено 👋 Это локальный демо-ответ. В реальном режиме здесь появится ответ из MAX.",
+            textMessage: "Привет! Сообщение вижу.",
           },
         },
       });

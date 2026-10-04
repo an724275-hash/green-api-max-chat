@@ -243,9 +243,7 @@ describe("React integration with mocked HTTP", () => {
     );
     await chat(user);
     await waitFor(() =>
-      expect(
-        screen.getByText(/Ничего не отправляется в MAX/),
-      ).toBeInTheDocument(),
+      expect(screen.getAllByText("Демо")[0]).toBeInTheDocument(),
     );
     expect(mock.fetcher).not.toHaveBeenCalled();
   });
